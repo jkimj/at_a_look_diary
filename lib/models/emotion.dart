@@ -33,32 +33,50 @@ class EmotionData {
     {
       'id': 'joy',
       'name': '기쁨',
-      'color': '#FFEB3B',
+      'color': '#FFF9C4', // 파스텔 옐로우
       'icon': '😊',
     },
     {
-      'id': 'angry',
-      'name': '화남',
-      'color': '#F44336',
-      'icon': '😠',
-    },
-    {
-      'id': 'sad',
-      'name': '슬픔',
-      'color': '#2196F3',
-      'icon': '😢',
-    },
-    {
-      'id': 'annoyed',
-      'name': '짜증',
-      'color': '#4CAF50',
-      'icon': '😤',
+      'id': 'love',
+      'name': '사랑',
+      'color': '#FFE0E6', // 파스텔 핑크
+      'icon': '🥰',
     },
     {
       'id': 'excited',
       'name': '설렘',
-      'color': '#E91E63',
-      'icon': '🥰',
+      'color': '#E1BEE7', // 파스텔 퍼플
+      'icon': '💜',
+    },
+    {
+      'id': 'peace',
+      'name': '평온',
+      'color': '#B2DFDB', // 파스텔 민트
+      'icon': '😌',
+    },
+    {
+      'id': 'sad',
+      'name': '슬픔',
+      'color': '#BBDEFB', // 파스텔 블루
+      'icon': '😢',
+    },
+    {
+      'id': 'tired',
+      'name': '피곤',
+      'color': '#D7CCC8', // 파스텔 베이지
+      'icon': '😴',
+    },
+    {
+      'id': 'annoyed',
+      'name': '짜증',
+      'color': '#FFCCBC', // 파스텔 오렌지
+      'icon': '😤',
+    },
+    {
+      'id': 'angry',
+      'name': '화남',
+      'color': '#FFCDD2', // 파스텔 레드
+      'icon': '😠',
     },
   ];
 }
