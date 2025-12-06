@@ -36,7 +36,11 @@ dependencies {
 android {
     namespace = "com.team2.at_a_look_diary"
     compileSdk = flutter.compileSdkVersion
+<<<<<<< HEAD
     ndkVersion = flutter.ndkVersion
+=======
+    ndkVersion = "27.0.12077973"
+>>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_18
@@ -52,7 +56,11 @@ android {
         applicationId = "com.team2.at_a_look_diary"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
+<<<<<<< HEAD
         minSdk = flutter.minSdkVersion
+=======
+        minSdk = 23
+>>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
