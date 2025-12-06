@@ -11,10 +11,18 @@ dependencies:
     sdk: flutter
 
   # Firebase
+<<<<<<< HEAD
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   firebase_database: ^11.1.4
   firebase_storage: ^12.3.4
+=======
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.4.0
+  firebase_database: ^11.1.4
+  firebase_storage: ^12.3.3
+  cloud_firestore: ^5.4.4
+>>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
 
   # Google 로그인
   google_sign_in: ^6.2.1
@@ -27,8 +35,14 @@ dependencies:
 
   # 유틸리티
   intl: ^0.18.1
+<<<<<<< HEAD
   # 공유 기능
   share_plus: ^7.2.1
+=======
+
+  # 공유 기능
+  share_plus: ^7.2.2
+>>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
 
   # URL 런처
   url_launcher: ^6.2.2

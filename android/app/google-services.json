@@ -15,6 +15,17 @@
       },
       "oauth_client": [
         {
+<<<<<<< HEAD
+=======
+          "client_id": "978677549690-d8jhhd7n4hm823ndv40jhhdtnba2drcu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.team2.at_a_look_diary",
+            "certificate_hash": "d174ffebdf0cef2cab82b3a96642a32e5bff9aa4"
+          }
+        },
+        {
+>>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
           "client_id": "978677549690-rh5kqinu1cnc0sg1197csrmp5kn157b5.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
