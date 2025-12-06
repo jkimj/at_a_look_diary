@@ -1,31 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-<<<<<<< HEAD
-=======
 import 'package:cloud_firestore/cloud_firestore.dart';
 >>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-<<<<<<< HEAD
-
-  // 구글 로그인
-  Future<bool> signInWithGoogle() async {
-    try {
-      // Google 로그인 시작
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
-      if (googleUser == null) {
-        // 사용자가 로그인 취소
-        return false;
-      }
-
-      // Google 인증 정보 가져오기
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      // Firebase 인증 자격증명 생성
-=======
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // 🔥 Firestore에 사용자 문서 생성 (없으면 새로 만들기)
@@ -67,12 +47,6 @@ class AuthService {
         idToken: googleAuth.idToken,
       );
 
-<<<<<<< HEAD
-      // Firebase에 로그인
-      UserCredential result = await _auth.signInWithCredential(credential);
-      
-      return result.user != null;
-=======
       UserCredential result =
       await _auth.signInWithCredential(credential);
 
@@ -88,14 +62,6 @@ class AuthService {
       return false;
     }
   }
-
-<<<<<<< HEAD
-  // 익명 로그인
-  Future<bool> signInAnonymously() async {
-    try {
-      UserCredential result = await _auth.signInAnonymously();
-      return result.user != null;
-=======
   // ✅ 익명 로그인
   Future<bool> signInAnonymously() async {
     try {
@@ -113,47 +79,30 @@ class AuthService {
     }
   }
 
-<<<<<<< HEAD
-  // 현재 사용자 ID 가져오기
-=======
   // ✅ 현재 사용자 ID 가져오기
 >>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
   String? getCurrentUserId() {
     return _auth.currentUser?.uid;
   }
 
-<<<<<<< HEAD
-  // 현재 사용자 정보 가져오기
-=======
   // ✅ 현재 사용자 정보 가져오기
 >>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
   User? getCurrentUser() {
     return _auth.currentUser;
   }
 
-<<<<<<< HEAD
-  // 익명 사용자인지 확인
-=======
   // ✅ 익명 사용자인지 확인
 >>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
   bool isAnonymous() {
     return _auth.currentUser?.isAnonymous ?? false;
   }
 
-<<<<<<< HEAD
-  // 로그인 여부 확인
-=======
   // ✅ 로그인 여부 확인
 >>>>>>> abbc0af (Refactor: Firestore user mode & couple base setup)
   bool isSignedIn() {
     return _auth.currentUser != null;
   }
 
-<<<<<<< HEAD
-  // 로그아웃
-  Future<void> signOut() async {
-    await _googleSignIn.signOut();
-=======
   // ✅ 로그아웃
   Future<void> signOut() async {
     try {
