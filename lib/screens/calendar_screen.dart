@@ -7,6 +7,7 @@ import '../services/diary_service.dart';
 import '../services/auth_service.dart';
 import '../services/couple_service.dart';
 import 'diary_write_screen.dart';
+import 'personal_diary_detail_screen.dart';
 import 'couple_diary_detail_screen.dart';
 import 'settings_screen.dart';
 
@@ -864,19 +865,40 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
   void _openDiary(DateTime date) {
     if (_currentSpace == DiarySpace.personal) {
       // 개인 일기 작성/보기
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DiaryWriteScreen(
-            date: date,
-            currentSpace: DiarySpace.personal,
+      String dateKey = _formatDate(date);
+      Diary? diary = _personalDiaries[dateKey];
+
+      if (diary != null) {
+        // 이미 작성된 개인 일기 보기
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PersonalDiaryDetailScreen(
+              date: date,
+              diary: diary,
+            ),
           ),
-        ),
-      ).then((result) {
-        if (result == true) {
-          _loadMonthDiaries();
-        }
-      });
+        ).then((result) {
+          if (result == true) {
+            _loadMonthDiaries();
+          }
+        });
+      } else {
+        // 새 개인 일기 작성
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DiaryWriteScreen(
+              date: date,
+              currentSpace: DiarySpace.personal,
+            ),
+          ),
+        ).then((result) {
+          if (result == true) {
+            _loadMonthDiaries();
+          }
+        });
+      }
     } else {
       // 커플 일기 작성/보기
       String dateKey = _formatDate(date);

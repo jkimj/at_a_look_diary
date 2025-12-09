@@ -183,11 +183,15 @@ class _DiaryWriteScreenState extends State<DiaryWriteScreen> with SingleTickerPr
         // 공통 이미지 업로드 (선택한 경우)
         if (success && _selectedImage != null) {
           String dateStr = '${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}-${widget.date.day.toString().padLeft(2, '0')}';
-          await _diaryService.uploadSharedImage(
+          bool imageSuccess = await _diaryService.uploadSharedImage(
             widget.coupleId!,
             dateStr,
             _selectedImage!,
           );
+
+          if (!imageSuccess) {
+            print('이미지 업로드 실패했지만 일기는 저장됨');
+          }
         }
       } else {
         // 개인 일기 저장

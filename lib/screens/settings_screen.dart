@@ -30,7 +30,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   final ScrollController _scrollController = ScrollController();
   StreamSubscription? _coupleListener;
-  bool _hasShownPopup = false; // 팝업 한 번만 표시용
 
   @override
   void initState() {
@@ -67,16 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (event.snapshot.exists && !_coupleModeEnabled) {
           // 커플 연결됨!
           _checkCoupleStatus();
-
-          // 팝업 한 번만 표시 (메모리 플래그)
-          if (!_hasShownPopup && mounted) {
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (mounted) {
-                _showSuccessDialog();
-                _hasShownPopup = true; // 플래그 설정
-              }
-            });
-          }
+          // 팝업은 onSuccess에서만 표시 (중복 방지)
         } else if (!event.snapshot.exists && _coupleModeEnabled) {
           // 커플 연결 해제됨
           _checkCoupleStatus();
@@ -569,14 +559,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => _CoupleConnectDialog(
         coupleService: _coupleService,
         authService: _authService,
-        onSuccess: () {
-          _checkCoupleStatus();
+        onSuccess: () async {
+          await _checkCoupleStatus();
           Navigator.pop(context);
-          _hasShownPopup = true; // 플래그 설정
-          _showSuccessDialog();
+
+          // Firebase 플래그 체크 후 팝업 표시
+          await _showSuccessDialogOnce();
         },
       ),
     );
+  }
+
+  // 팝업을 딱 한 번만 표시하는 메소드
+  Future<void> _showSuccessDialogOnce() async {
+    final userId = _authService.getCurrentUserId();
+    if (userId == null) return;
+
+    try {
+      // Firebase에서 팝업 표시 여부 확인
+      DatabaseReference popupRef = _database.ref('users/$userId/hasSeenCouplePopup');
+      DataSnapshot snapshot = await popupRef.get();
+
+      if (!snapshot.exists || snapshot.value == false) {
+        // 아직 팝업을 본 적 없음 -> 표시
+        if (mounted) {
+          _showSuccessDialog();
+          // 플래그 저장
+          await popupRef.set(true);
+        }
+      }
+      // 이미 본 적 있으면 팝업 안 띄움
+    } catch (e) {
+      print('팝업 플래그 체크 실패: $e');
+      // 에러 나도 일단 팝업은 표시
+      if (mounted) {
+        _showSuccessDialog();
+      }
+    }
   }
 
   void _showSuccessDialog() {
