@@ -6,14 +6,21 @@ import '../models/emotion.dart';
 import '../services/diary_service.dart';
 import '../services/auth_service.dart';
 
+// DiarySpace enum
+enum DiarySpace { personal, couple }
+
 class DiaryWriteScreen extends StatefulWidget {
   final DateTime date;
   final Diary? existingDiary;
+  final DiarySpace currentSpace;
+  final String? coupleId;
 
   const DiaryWriteScreen({
     super.key,
     required this.date,
     this.existingDiary,
+    this.currentSpace = DiarySpace.personal,
+    this.coupleId,
   });
 
   @override
@@ -144,9 +151,28 @@ class _DiaryWriteScreenState extends State<DiaryWriteScreen> with SingleTickerPr
         timestamp: widget.date.millisecondsSinceEpoch,
       );
 
-      await _diaryService.saveDiary(userId, widget.date, diary, _selectedImage);
+      // 스페이스에 따라 다른 저장 메소드 호출
+      bool success;
+      if (widget.currentSpace == DiarySpace.couple && widget.coupleId != null) {
+        // 커플 스페이스
+        success = await _diaryService.saveCoupleDiary(
+          widget.coupleId!,
+          userId,
+          widget.date,
+          diary,
+          _selectedImage,
+        );
+      } else {
+        // 개인 스페이스
+        success = await _diaryService.saveDiary(
+          userId,
+          widget.date,
+          diary,
+          _selectedImage,
+        );
+      }
 
-      if (mounted) {
+      if (mounted && success) {
         Navigator.pop(context, true);
       }
     } catch (e) {

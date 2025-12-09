@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../services/auth_service.dart';
 import '../services/couple_service.dart';
 
@@ -17,6 +19,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final AuthService _authService = AuthService();
   final CoupleService _coupleService = CoupleService();
+  final FirebaseDatabase _database = FirebaseDatabase.instance;
 
   bool _coupleModeEnabled = false;
   bool _isCheckingCoupleStatus = true;
@@ -26,11 +29,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedTheme = 'system';
 
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription? _coupleListener;
 
   @override
   void initState() {
     super.initState();
     _checkCoupleStatus();
+    _listenToCoupleChanges();
 
     if (widget.openCoupleMode) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -45,8 +50,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    _coupleListener?.cancel();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // 실시간 커플 상태 변경 감지
+  void _listenToCoupleChanges() {
+    final userId = _authService.getCurrentUserId();
+    if (userId != null) {
+      _coupleListener = _database
+          .ref('users/$userId/coupleId')
+          .onValue
+          .listen((event) {
+        if (event.snapshot.exists && !_coupleModeEnabled) {
+          // 커플 연결됨!
+          _checkCoupleStatus();
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              _showSuccessDialog();
+            }
+          });
+        } else if (!event.snapshot.exists && _coupleModeEnabled) {
+          // 커플 연결 해제됨
+          _checkCoupleStatus();
+        }
+      });
+    }
   }
 
   Future<void> _checkCoupleStatus() async {

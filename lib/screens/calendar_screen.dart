@@ -7,6 +7,9 @@ import '../services/couple_service.dart';
 import 'diary_write_screen.dart';
 import 'settings_screen.dart';
 
+// 스페이스 타입
+//enum DiarySpace { personal, couple }
+
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -26,6 +29,10 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
   bool _showCalendarTip = true;
   bool _coupleModeEnabled = false;
   String? _partnerId;
+  String? _coupleId;
+
+  // 현재 스페이스 (개인/커플)
+  DiarySpace _currentSpace = DiarySpace.personal;
 
   late AnimationController _fabAnimationController;
   late Animation<double> _fabScaleAnimation;
@@ -34,10 +41,9 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    _loadMonthDiaries();
     _checkCoupleStatus();
+    _loadMonthDiaries();
 
-    // FAB 애니메이션
     _fabAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -69,9 +75,11 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
       final isConnected = await _coupleService.isCoupleConnected(userId);
       if (isConnected) {
         final partnerId = await _coupleService.getPartnerId(userId);
+        final coupleId = await _coupleService.getCoupleId(userId);
         setState(() {
           _coupleModeEnabled = true;
           _partnerId = partnerId;
+          _coupleId = coupleId;
         });
       }
     }
@@ -86,16 +94,38 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
 
     String? userId = _authService.getCurrentUserId();
     if (userId != null) {
-      Map<String, Diary> diaries = await _diaryService.loadMonthDiaries(
-        userId,
-        _focusedDay.year,
-        _focusedDay.month,
-      );
+      Map<String, Diary> diaries = {};
+
+      if (_currentSpace == DiarySpace.personal) {
+        // 개인 스페이스: 내 일기만
+        diaries = await _diaryService.loadMonthDiaries(
+          userId,
+          _focusedDay.year,
+          _focusedDay.month,
+        );
+      } else if (_currentSpace == DiarySpace.couple && _coupleId != null) {
+        // 커플 스페이스: 우리 둘 일기
+        diaries = await _diaryService.loadCoupleMonthDiaries(
+          _coupleId!,
+          _focusedDay.year,
+          _focusedDay.month,
+        );
+      }
+
       setState(() {
         _diaries = diaries;
         _isLoading = false;
       });
     }
+  }
+
+  void _switchSpace(DiarySpace space) {
+    if (_currentSpace == space) return;
+
+    setState(() {
+      _currentSpace = space;
+    });
+    _loadMonthDiaries();
   }
 
   void _showCalendarTipDialog() {
@@ -109,12 +139,12 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
             const Text('캘린더 팁'),
           ],
         ),
-        content: const Text(
+        content: Text(
           '• 날짜를 클릭하면 일기를 작성할 수 있어요\n'
               '• 일기가 있는 날짜는 썸네일로 표시돼요\n'
               '• 형광펜 효과로 오늘의 감정을 확인하세요\n'
-              '• 좌우로 스와이프해서 월을 이동하세요',
-          style: TextStyle(fontSize: 15, height: 1.7),
+              '• ${_coupleModeEnabled ? '하트/개인 아이콘으로 스페이스 전환\n• ' : ''}좌우로 스와이프해서 월을 이동하세요',
+          style: const TextStyle(fontSize: 15, height: 1.7),
         ),
         actions: [
           TextButton(
@@ -150,148 +180,163 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                       ),
                     ],
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${_focusedDay.year}년',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey[600],
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${_focusedDay.month}월',
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF212121),
-                              letterSpacing: -0.8,
-                              height: 1.1,
-                            ),
-                          ),
-                        ],
-                      ),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // 커플 모드 하트 아이콘 (연결 시 표시)
-                          if (_coupleModeEnabled)
-                            Container(
-                              margin: const EdgeInsets.only(right: 4),
-                              child: IconButton(
-                                icon: Stack(
-                                  children: [
-                                    Icon(Icons.favorite, color: Colors.pink[400], size: 26),
-                                    // 애니메이션 효과를 위한 작은 하트
-                                    Positioned(
-                                      top: -2,
-                                      right: -2,
-                                      child: Icon(
-                                        Icons.favorite,
-                                        color: Colors.pink[200],
-                                        size: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                tooltip: '커플 모드 활성화됨',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const SettingsScreen(openCoupleMode: true),
-                                    ),
-                                  ).then((_) {
-                                    _checkCoupleStatus();
-                                  });
-                                },
-                              ),
-                            ),
-                          PopupMenuButton<String>(
-                            icon: Icon(Icons.more_vert, size: 24, color: Colors.grey[700]),
-                            offset: const Offset(0, 50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            itemBuilder: (context) => [
-                              PopupMenuItem<String>(
-                                enabled: false,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _authService.isAnonymous()
-                                            ? '익명 사용자'
-                                            : _authService.getCurrentUser()?.email ?? '사용자',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF212121),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            _authService.isAnonymous() ? '게스트' : 'Google',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                          if (_coupleModeEnabled) ...[
-                                            const SizedBox(width: 8),
-                                            Icon(Icons.favorite, size: 12, color: Colors.pink[300]),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '커플 모드',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.pink[400],
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ],
-                                  ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_focusedDay.year}년',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[600],
+                                  letterSpacing: 0.3,
                                 ),
                               ),
-                              const PopupMenuDivider(),
-                              PopupMenuItem<String>(
-                                value: 'logout',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.logout, size: 20, color: Colors.red[400]),
-                                    const SizedBox(width: 12),
-                                    const Text('로그아웃'),
-                                  ],
+                              const SizedBox(height: 2),
+                              Text(
+                                '${_focusedDay.month}월',
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF212121),
+                                  letterSpacing: -0.8,
+                                  height: 1.1,
                                 ),
                               ),
                             ],
-                            onSelected: (value) async {
-                              if (value == 'logout') {
-                                await _authService.signOut();
-                                if (mounted) {
-                                  Navigator.of(context).pushNamedAndRemoveUntil(
-                                    '/login',
-                                        (route) => false,
-                                  );
-                                }
-                              }
-                            },
+                          ),
+                          Row(
+                            children: [
+                              // 스페이스 전환 버튼 (커플 모드 시)
+                              if (_coupleModeEnabled) ...[
+                                _buildSpaceToggle(),
+                                const SizedBox(width: 8),
+                              ],
+                              PopupMenuButton<String>(
+                                icon: Icon(Icons.more_vert, size: 24, color: Colors.grey[700]),
+                                offset: const Offset(0, 50),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                itemBuilder: (context) => [
+                                  PopupMenuItem<String>(
+                                    enabled: false,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _authService.isAnonymous()
+                                                ? '익명 사용자'
+                                                : _authService.getCurrentUser()?.email ?? '사용자',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF212121),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                _authService.isAnonymous() ? '게스트' : 'Google',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                              if (_coupleModeEnabled) ...[
+                                                const SizedBox(width: 8),
+                                                Icon(Icons.favorite, size: 12, color: Colors.pink[300]),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '커플 모드',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.pink[400],
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const PopupMenuDivider(),
+                                  PopupMenuItem<String>(
+                                    value: 'logout',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.logout, size: 20, color: Colors.red[400]),
+                                        const SizedBox(width: 12),
+                                        const Text('로그아웃'),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                onSelected: (value) async {
+                                  if (value == 'logout') {
+                                    await _authService.signOut();
+                                    if (mounted) {
+                                      Navigator.of(context).pushNamedAndRemoveUntil(
+                                        '/login',
+                                            (route) => false,
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
+
+                      // 현재 스페이스 표시
+                      if (_coupleModeEnabled) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: _currentSpace == DiarySpace.couple
+                                ? Colors.pink[50]
+                                : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _currentSpace == DiarySpace.couple
+                                    ? Icons.favorite
+                                    : Icons.person,
+                                size: 14,
+                                color: _currentSpace == DiarySpace.couple
+                                    ? Colors.pink[400]
+                                    : Colors.grey[600],
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _currentSpace == DiarySpace.couple ? '커플 일기장' : '개인 일기장',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _currentSpace == DiarySpace.couple
+                                      ? Colors.pink[700]
+                                      : Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -425,6 +470,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                                 ),
                               ).then((_) {
                                 _checkCoupleStatus();
+                                _loadMonthDiaries();
                               });
                             },
                           ),
@@ -510,12 +556,72 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
     );
   }
 
+  // 스페이스 전환 토글
+  Widget _buildSpaceToggle() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSpaceButton(
+            icon: Icons.favorite,
+            color: Colors.pink,
+            isSelected: _currentSpace == DiarySpace.couple,
+            onTap: () => _switchSpace(DiarySpace.couple),
+          ),
+          const SizedBox(width: 4),
+          _buildSpaceButton(
+            icon: Icons.person,
+            color: Colors.grey[700]!,
+            isSelected: _currentSpace == DiarySpace.personal,
+            onTap: () => _switchSpace(DiarySpace.personal),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpaceButton({
+    required IconData icon,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ]
+              : null,
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: isSelected ? color : Colors.grey[400],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDayCell(DateTime day, bool isToday, bool isSelected, {bool isOutside = false}) {
     String dateKey = _formatDate(day);
     Diary? diary = _diaries[dateKey];
     bool hasDiary = diary != null && !isOutside;
 
-    // 감정 색상
     Color? emotionColor;
     if (hasDiary && diary.emotionColor.isNotEmpty) {
       emotionColor = Color(
@@ -553,7 +659,6 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
         ),
         child: Stack(
           children: [
-            // 썸네일 이미지
             if (hasDiary && diary.imageUrl.isNotEmpty)
               Positioned.fill(
                 child: ClipRRect(
@@ -567,8 +672,6 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                   ),
                 ),
               ),
-
-            // 날짜 (왼쪽 상단)
             Positioned(
               top: 6,
               left: 8,
@@ -598,8 +701,6 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                 ),
               ),
             ),
-
-            // 형광펜 스타일 감정 표시 (하단)
             if (hasDiary && emotionColor != null)
               Positioned(
                 bottom: 4,
@@ -624,7 +725,11 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DiaryWriteScreen(date: date),
+        builder: (context) => DiaryWriteScreen(
+          date: date,
+          currentSpace: _currentSpace,
+          coupleId: _coupleId,
+        ),
       ),
     ).then((result) {
       if (result == true) {
@@ -634,7 +739,6 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
   }
 }
 
-// 형광펜 스타일 페인터
 class HighlighterPainter extends CustomPainter {
   final Color color;
 
@@ -646,11 +750,9 @@ class HighlighterPainter extends CustomPainter {
       ..color = color.withOpacity(0.7)
       ..style = PaintingStyle.fill;
 
-    // 형광펜처럼 불규칙한 테두리 효과
     final path = Path();
     path.moveTo(0, size.height * 0.3);
 
-    // 약간 울퉁불퉁한 라인
     double segments = 8;
     double segmentWidth = size.width / segments;
 
@@ -671,7 +773,6 @@ class HighlighterPainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
 
-    // 약간의 그라데이션 효과를 위한 두 번째 레이어
     final topPaint = Paint()
       ..color = color.withOpacity(0.5)
       ..style = PaintingStyle.fill;
