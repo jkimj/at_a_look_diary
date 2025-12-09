@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"  package= "com.team2.at_a_look_diary">
     <!-- 권한 선언 -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -16,10 +16,9 @@
 
     <application
         android:label="at_a_look_diary"
-        android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name=".MainActivity"
+            android:name="com.team2.at_a_look_diary.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
