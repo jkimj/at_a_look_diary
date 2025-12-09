@@ -33,6 +33,8 @@ dependencies:
   # URL 런처
   url_launcher: ^6.2.2
 
+  shared_preferences: ^2.2.2 #추가함여
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

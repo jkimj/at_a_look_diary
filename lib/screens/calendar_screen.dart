@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/diary.dart';
+import '../models/couple_entry.dart';
+import '../models/diary_space.dart';
 import '../services/diary_service.dart';
 import '../services/auth_service.dart';
 import '../services/couple_service.dart';
 import 'diary_write_screen.dart';
+import 'couple_diary_detail_screen.dart';
 import 'settings_screen.dart';
-
-// 스페이스 타입
-//enum DiarySpace { personal, couple }
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -24,14 +24,19 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
 
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  Map<String, Diary> _diaries = {};
+
+  // 개인 일기
+  Map<String, Diary> _personalDiaries = {};
+  // 커플 일기
+  Map<String, CoupleDiary> _coupleDiaries = {};
+
   bool _isLoading = false;
   bool _showCalendarTip = true;
   bool _coupleModeEnabled = false;
   String? _partnerId;
   String? _coupleId;
 
-  // 현재 스페이스 (개인/커플)
+  // 현재 스페이스
   DiarySpace _currentSpace = DiarySpace.personal;
 
   late AnimationController _fabAnimationController;
@@ -94,28 +99,29 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
 
     String? userId = _authService.getCurrentUserId();
     if (userId != null) {
-      Map<String, Diary> diaries = {};
-
       if (_currentSpace == DiarySpace.personal) {
-        // 개인 스페이스: 내 일기만
-        diaries = await _diaryService.loadMonthDiaries(
+        // 개인 일기 로드
+        Map<String, Diary> diaries = await _diaryService.loadMonthDiaries(
           userId,
           _focusedDay.year,
           _focusedDay.month,
         );
+        setState(() {
+          _personalDiaries = diaries;
+          _isLoading = false;
+        });
       } else if (_currentSpace == DiarySpace.couple && _coupleId != null) {
-        // 커플 스페이스: 우리 둘 일기
-        diaries = await _diaryService.loadCoupleMonthDiaries(
+        // 커플 일기 로드
+        Map<String, CoupleDiary> coupleDiaries = await _diaryService.loadCoupleMonthDiaries(
           _coupleId!,
           _focusedDay.year,
           _focusedDay.month,
         );
+        setState(() {
+          _coupleDiaries = coupleDiaries;
+          _isLoading = false;
+        });
       }
-
-      setState(() {
-        _diaries = diaries;
-        _isLoading = false;
-      });
     }
   }
 
@@ -142,8 +148,8 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
         content: Text(
           '• 날짜를 클릭하면 일기를 작성할 수 있어요\n'
               '• 일기가 있는 날짜는 썸네일로 표시돼요\n'
-              '• 형광펜 효과로 오늘의 감정을 확인하세요\n'
-              '• ${_coupleModeEnabled ? '하트/개인 아이콘으로 스페이스 전환\n• ' : ''}좌우로 스와이프해서 월을 이동하세요',
+              '• 형광펜 효과로 감정을 확인하세요\n'
+              '• ${_coupleModeEnabled ? '하트/개인 아이콘으로 스페이스 전환\n• 커플 일기는 두 개의 감정이 표시돼요\n• ' : ''}좌우로 스와이프해서 월을 이동하세요',
           style: const TextStyle(fontSize: 15, height: 1.7),
         ),
         actions: [
@@ -212,7 +218,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                           ),
                           Row(
                             children: [
-                              // 스페이스 전환 버튼 (커플 모드 시)
+                              // 스페이스 전환 버튼
                               if (_coupleModeEnabled) ...[
                                 _buildSpaceToggle(),
                                 const SizedBox(width: 8),
@@ -396,7 +402,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                             _selectedDay = selectedDay;
                             _focusedDay = focusedDay;
                           });
-                          _openDiaryWrite(selectedDay);
+                          _openDiary(selectedDay);
                         },
                         onPageChanged: (focusedDay) {
                           setState(() {
@@ -619,14 +625,24 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
 
   Widget _buildDayCell(DateTime day, bool isToday, bool isSelected, {bool isOutside = false}) {
     String dateKey = _formatDate(day);
-    Diary? diary = _diaries[dateKey];
+
+    if (_currentSpace == DiarySpace.personal) {
+      // 개인 일기
+      return _buildPersonalDayCell(day, dateKey, isToday, isSelected, isOutside);
+    } else {
+      // 커플 일기
+      return _buildCoupleDayCell(day, dateKey, isToday, isSelected, isOutside);
+    }
+  }
+
+  // 개인 일기 셀
+  Widget _buildPersonalDayCell(DateTime day, String dateKey, bool isToday, bool isSelected, bool isOutside) {
+    Diary? diary = _personalDiaries[dateKey];
     bool hasDiary = diary != null && !isOutside;
 
     Color? emotionColor;
     if (hasDiary && diary.emotionColor.isNotEmpty) {
-      emotionColor = Color(
-        int.parse(diary.emotionColor.replaceFirst('#', '0xFF')),
-      );
+      emotionColor = Color(int.parse(diary.emotionColor.replaceFirst('#', '0xFF')));
     }
 
     return GestureDetector(
@@ -635,7 +651,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
           _selectedDay = day;
           _focusedDay = day;
         });
-        _openDiaryWrite(day);
+        _openDiary(day);
       },
       child: Container(
         margin: const EdgeInsets.all(2),
@@ -717,25 +733,190 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
     );
   }
 
+  // 커플 일기 셀 (두 개의 감정 표시)
+  Widget _buildCoupleDayCell(DateTime day, String dateKey, bool isToday, bool isSelected, bool isOutside) {
+    CoupleDiary? coupleDiary = _coupleDiaries[dateKey];
+    bool hasDiary = coupleDiary != null && !isOutside;
+
+    // 두 사람의 감정 색상
+    List<Color> emotionColors = [];
+    if (hasDiary) {
+      for (var entry in coupleDiary.entries.values) {
+        if (entry.emotionColor.isNotEmpty) {
+          emotionColors.add(Color(int.parse(entry.emotionColor.replaceFirst('#', '0xFF'))));
+        }
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedDay = day;
+          _focusedDay = day;
+        });
+        _openDiary(day);
+      },
+      child: Container(
+        margin: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: isOutside ? Colors.grey[50] : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: isToday
+              ? Border.all(color: const Color(0xFFB39DDB), width: 2.5)
+              : isSelected
+              ? Border.all(color: const Color(0xFFB39DDB).withOpacity(0.3), width: 2)
+              : Border.all(color: Colors.grey[100]!, width: 1),
+          boxShadow: hasDiary && !isOutside
+              ? [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ]
+              : null,
+        ),
+        child: Stack(
+          children: [
+            // 공통 이미지
+            if (hasDiary && coupleDiary.sharedImageUrl.isNotEmpty)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(11),
+                  child: Image.network(
+                    coupleDiary.sharedImageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(color: Colors.grey[200]);
+                    },
+                  ),
+                ),
+              ),
+
+            // 날짜
+            Positioned(
+              top: 6,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: hasDiary && coupleDiary.sharedImageUrl.isNotEmpty
+                      ? Colors.black.withOpacity(0.65)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '${day.day}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: hasDiary && coupleDiary.sharedImageUrl.isNotEmpty
+                        ? Colors.white
+                        : isOutside
+                        ? Colors.grey[400]
+                        : day.weekday == DateTime.sunday
+                        ? Colors.red[400]
+                        : day.weekday == DateTime.saturday
+                        ? Colors.blue[400]
+                        : const Color(0xFF212121),
+                  ),
+                ),
+              ),
+            ),
+
+            // 두 개의 형광펜 (두 사람의 감정)
+            if (hasDiary && emotionColors.isNotEmpty)
+              Positioned(
+                bottom: 4,
+                left: 4,
+                right: 4,
+                child: Row(
+                  children: [
+                    if (emotionColors.isNotEmpty)
+                      Expanded(
+                        child: CustomPaint(
+                          size: const Size(double.infinity, 8),
+                          painter: HighlighterPainter(color: emotionColors[0]),
+                        ),
+                      ),
+                    if (emotionColors.length > 1) ...[
+                      const SizedBox(width: 2),
+                      Expanded(
+                        child: CustomPaint(
+                          size: const Size(double.infinity, 8),
+                          painter: HighlighterPainter(color: emotionColors[1]),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  void _openDiaryWrite(DateTime date) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DiaryWriteScreen(
-          date: date,
-          currentSpace: _currentSpace,
-          coupleId: _coupleId,
+  void _openDiary(DateTime date) {
+    if (_currentSpace == DiarySpace.personal) {
+      // 개인 일기 작성/보기
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DiaryWriteScreen(
+            date: date,
+            currentSpace: DiarySpace.personal,
+          ),
         ),
-      ),
-    ).then((result) {
-      if (result == true) {
-        _loadMonthDiaries();
+      ).then((result) {
+        if (result == true) {
+          _loadMonthDiaries();
+        }
+      });
+    } else {
+      // 커플 일기 작성/보기
+      String dateKey = _formatDate(date);
+      CoupleDiary? coupleDiary = _coupleDiaries[dateKey];
+
+      if (coupleDiary != null) {
+        // 이미 작성된 커플 일기 보기
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CoupleDiaryDetailScreen(
+              date: date,
+              coupleDiary: coupleDiary,
+              coupleId: _coupleId!,
+              myUserId: _authService.getCurrentUserId()!,
+            ),
+          ),
+        ).then((result) {
+          if (result == true) {
+            _loadMonthDiaries();
+          }
+        });
+      } else {
+        // 새 커플 일기 작성
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DiaryWriteScreen(
+              date: date,
+              currentSpace: DiarySpace.couple,
+              coupleId: _coupleId,
+            ),
+          ),
+        ).then((result) {
+          if (result == true) {
+            _loadMonthDiaries();
+          }
+        });
       }
-    });
+    }
   }
 }
 
@@ -759,12 +940,7 @@ class HighlighterPainter extends CustomPainter {
     for (int i = 0; i <= segments; i++) {
       double x = i * segmentWidth;
       double y = size.height * 0.3 + (i % 2 == 0 ? 0 : size.height * 0.1);
-
-      if (i == 0) {
-        path.lineTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
+      path.lineTo(x, y);
     }
 
     path.lineTo(size.width, size.height);

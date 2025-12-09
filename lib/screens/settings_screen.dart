@@ -30,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   final ScrollController _scrollController = ScrollController();
   StreamSubscription? _coupleListener;
+  bool _hasShownPopup = false; // 팝업 한 번만 표시용
 
   @override
   void initState() {
@@ -66,11 +67,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (event.snapshot.exists && !_coupleModeEnabled) {
           // 커플 연결됨!
           _checkCoupleStatus();
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
-              _showSuccessDialog();
-            }
-          });
+
+          // 팝업 한 번만 표시 (메모리 플래그)
+          if (!_hasShownPopup && mounted) {
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                _showSuccessDialog();
+                _hasShownPopup = true; // 플래그 설정
+              }
+            });
+          }
         } else if (!event.snapshot.exists && _coupleModeEnabled) {
           // 커플 연결 해제됨
           _checkCoupleStatus();
@@ -566,6 +572,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onSuccess: () {
           _checkCoupleStatus();
           Navigator.pop(context);
+          _hasShownPopup = true; // 플래그 설정
           _showSuccessDialog();
         },
       ),

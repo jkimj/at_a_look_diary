@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/diary.dart';
+import '../models/couple_entry.dart';
 
 class DiaryService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
@@ -9,7 +10,6 @@ class DiaryService {
 
   // ==================== 개인 일기 ====================
 
-  // 일기 저장
   Future<bool> saveDiary(
       String userId,
       DateTime date,
@@ -42,7 +42,6 @@ class DiaryService {
     }
   }
 
-  // 특정 날짜 일기 불러오기
   Future<Diary?> loadDiary(String userId, String date) async {
     try {
       DatabaseReference diaryRef = _database.ref('users/$userId/diaries/$date');
@@ -59,7 +58,6 @@ class DiaryService {
     }
   }
 
-  // 월별 일기 목록 불러오기
   Future<Map<String, Diary>> loadMonthDiaries(
       String userId,
       int year,
@@ -89,7 +87,6 @@ class DiaryService {
     }
   }
 
-  // 일기 삭제
   Future<bool> deleteDiary(String userId, String date) async {
     try {
       try {
@@ -112,33 +109,26 @@ class DiaryService {
 
   // ==================== 커플 일기 ====================
 
-  // 커플 일기 저장
+  // 커플 일기 저장 (내 엔트리만)
   Future<bool> saveCoupleDiary(
       String coupleId,
       String userId,
       DateTime date,
-      Diary diary,
-      File? imageFile,
+      String emotion,
+      String emotionColor,
+      String text,
       ) async {
     try {
       String dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      String imageUrl = diary.imageUrl;
 
-      if (imageFile != null) {
-        imageUrl = await _uploadImage(userId, dateStr, imageFile, isCouple: true);
-      }
+      // 내 엔트리 저장
+      DatabaseReference entryRef = _database.ref('couples/$coupleId/diaries/$dateStr/entries/$userId');
 
-      // 커플 스페이스에 저장
-      DatabaseReference diaryRef = _database.ref('couples/$coupleId/diaries/$dateStr');
-
-      await diaryRef.set({
-        'diaryId': '$userId-$dateStr',
-        'userId': userId, // 누가 작성했는지
-        'emotion': diary.emotion,
-        'emotionColor': diary.emotionColor,
-        'text': diary.text,
-        'imageUrl': imageUrl,
-        'timestamp': date.millisecondsSinceEpoch,
+      await entryRef.set({
+        'emotion': emotion,
+        'emotionColor': emotionColor,
+        'text': text,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
 
       return true;
@@ -148,15 +138,37 @@ class DiaryService {
     }
   }
 
-  // 커플 일기 불러오기 (특정 날짜)
-  Future<Diary?> loadCoupleDiary(String coupleId, String date) async {
+  // 공통 이미지 업로드
+  Future<bool> uploadSharedImage(
+      String coupleId,
+      String date,
+      File imageFile,
+      ) async {
+    try {
+      String imageUrl = await _uploadImage(coupleId, date, imageFile, isCouple: true);
+
+      if (imageUrl.isEmpty) return false;
+
+      // 공통 이미지 URL 저장
+      DatabaseReference imageRef = _database.ref('couples/$coupleId/diaries/$date/sharedImage');
+      await imageRef.set(imageUrl);
+
+      return true;
+    } catch (e) {
+      print('공통 이미지 업로드 실패: $e');
+      return false;
+    }
+  }
+
+  // 커플 일기 불러오기 (한 날짜의 두 사람 엔트리 + 공통 이미지)
+  Future<CoupleDiary?> loadCoupleDiary(String coupleId, String date) async {
     try {
       DatabaseReference diaryRef = _database.ref('couples/$coupleId/diaries/$date');
       DataSnapshot snapshot = await diaryRef.get();
 
       if (snapshot.exists) {
         Map<String, dynamic> data = Map<String, dynamic>.from(snapshot.value as Map);
-        return Diary.fromJson(data);
+        return CoupleDiary.fromJson(date, data);
       }
       return null;
     } catch (e) {
@@ -165,8 +177,8 @@ class DiaryService {
     }
   }
 
-  // 커플 월별 일기 목록 (두 사람 모두)
-  Future<Map<String, Diary>> loadCoupleMonthDiaries(
+  // 커플 월별 일기 목록 (달력에 표시용)
+  Future<Map<String, CoupleDiary>> loadCoupleMonthDiaries(
       String coupleId,
       int year,
       int month,
@@ -180,11 +192,14 @@ class DiaryService {
 
       DataSnapshot snapshot = await query.get();
 
-      Map<String, Diary> diaries = {};
+      Map<String, CoupleDiary> diaries = {};
       if (snapshot.exists) {
         Map<dynamic, dynamic> data = snapshot.value as Map;
-        data.forEach((key, value) {
-          diaries[key] = Diary.fromJson(Map<String, dynamic>.from(value));
+        data.forEach((dateKey, value) {
+          diaries[dateKey] = CoupleDiary.fromJson(
+            dateKey,
+            Map<String, dynamic>.from(value),
+          );
         });
       }
 
@@ -195,43 +210,73 @@ class DiaryService {
     }
   }
 
-  // 커플 일기 삭제
-  Future<bool> deleteCoupleDiary(String coupleId, String userId, String date) async {
+  // 내 커플 일기 엔트리만 삭제
+  Future<bool> deleteMyCoupleDiaryEntry(
+      String coupleId,
+      String userId,
+      String date,
+      ) async {
     try {
-      // 작성자 확인
+      // 내 엔트리만 삭제
+      DatabaseReference entryRef = _database.ref('couples/$coupleId/diaries/$date/entries/$userId');
+      await entryRef.remove();
+
+      // 엔트리가 전부 삭제되었는지 확인
       DatabaseReference diaryRef = _database.ref('couples/$coupleId/diaries/$date');
       DataSnapshot snapshot = await diaryRef.get();
 
       if (snapshot.exists) {
         Map<String, dynamic> data = Map<String, dynamic>.from(snapshot.value as Map);
-        String authorId = data['userId'] ?? '';
 
-        // 본인이 쓴 일기만 삭제 가능
-        if (authorId != userId) {
-          throw Exception('본인이 작성한 일기만 삭제할 수 있습니다');
+        // entries가 비어있고 sharedImage만 남았으면 전체 삭제
+        if (data['entries'] == null || (data['entries'] as Map).isEmpty) {
+          // 공통 이미지도 삭제
+          if (data['sharedImage'] != null && (data['sharedImage'] as String).isNotEmpty) {
+            try {
+              String fileName = '${date}_shared.jpg';
+              Reference storageRef = _storage.ref('couples/$coupleId/$fileName');
+              await storageRef.delete();
+            } catch (e) {
+              print('공통 이미지 삭제 실패: $e');
+            }
+          }
+
+          await diaryRef.remove();
         }
       }
 
-      // 이미지 삭제
+      return true;
+    } catch (e) {
+      print('커플 일기 엔트리 삭제 실패: $e');
+      return false;
+    }
+  }
+
+  // 공통 이미지 삭제 (둘 중 한 명이 삭제 요청)
+  Future<bool> deleteSharedImage(String coupleId, String date) async {
+    try {
+      // Storage에서 이미지 삭제
       try {
-        String fileName = '${date}_img1.jpg';
+        String fileName = '${date}_shared.jpg';
         Reference storageRef = _storage.ref('couples/$coupleId/$fileName');
         await storageRef.delete();
       } catch (e) {
-        print('이미지 삭제 실패 (없을 수 있음): $e');
+        print('공통 이미지 파일 삭제 실패: $e');
       }
 
-      await diaryRef.remove();
+      // Database에서 URL 삭제
+      DatabaseReference imageRef = _database.ref('couples/$coupleId/diaries/$date/sharedImage');
+      await imageRef.remove();
+
       return true;
     } catch (e) {
-      print('커플 일기 삭제 실패: $e');
+      print('공통 이미지 삭제 실패: $e');
       return false;
     }
   }
 
   // ==================== 공통 ====================
 
-  // 이미지 업로드
   Future<String> _uploadImage(
       String userId,
       String date,
@@ -239,14 +284,16 @@ class DiaryService {
         bool isCouple = false,
       }) async {
     try {
-      String fileName = '${date}_img1.jpg';
+      String fileName;
       Reference storageRef;
 
       if (isCouple) {
-        // 커플 이미지는 couples 폴더에
+        // 커플 공통 이미지
+        fileName = '${date}_shared.jpg';
         storageRef = _storage.ref('couples/$userId/$fileName');
       } else {
-        // 개인 이미지는 diaries 폴더에
+        // 개인 이미지
+        fileName = '${date}_img1.jpg';
         storageRef = _storage.ref('diaries/$userId/$fileName');
       }
 
