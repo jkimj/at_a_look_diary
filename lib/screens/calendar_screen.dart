@@ -3,6 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../models/diary.dart';
 import '../services/diary_service.dart';
 import '../services/auth_service.dart';
+import '../services/couple_service.dart';
 import 'diary_write_screen.dart';
 import 'settings_screen.dart';
 
@@ -16,6 +17,7 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProviderStateMixin {
   final DiaryService _diaryService = DiaryService();
   final AuthService _authService = AuthService();
+  final CoupleService _coupleService = CoupleService();
 
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -23,6 +25,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
   bool _isLoading = false;
   bool _showCalendarTip = true;
   bool _coupleModeEnabled = false;
+  String? _partnerId;
 
   late AnimationController _fabAnimationController;
   late Animation<double> _fabScaleAnimation;
@@ -32,6 +35,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
     super.initState();
     _selectedDay = _focusedDay;
     _loadMonthDiaries();
+    _checkCoupleStatus();
 
     // FAB 애니메이션
     _fabAnimationController = AnimationController(
@@ -57,6 +61,20 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
   void dispose() {
     _fabAnimationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkCoupleStatus() async {
+    final userId = _authService.getCurrentUserId();
+    if (userId != null) {
+      final isConnected = await _coupleService.isCoupleConnected(userId);
+      if (isConnected) {
+        final partnerId = await _coupleService.getPartnerId(userId);
+        setState(() {
+          _coupleModeEnabled = true;
+          _partnerId = partnerId;
+        });
+      }
+    }
   }
 
   Future<void> _loadMonthDiaries() async {
@@ -94,7 +112,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
         content: const Text(
           '• 날짜를 클릭하면 일기를 작성할 수 있어요\n'
               '• 일기가 있는 날짜는 썸네일로 표시돼요\n'
-              '• 우측 상단 색상 배지로 감정을 확인하세요\n'
+              '• 형광펜 효과로 오늘의 감정을 확인하세요\n'
               '• 좌우로 스와이프해서 월을 이동하세요',
           style: TextStyle(fontSize: 15, height: 1.7),
         ),
@@ -162,12 +180,27 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                       ),
                       Row(
                         children: [
-                          // 커플 모드 하트 아이콘
+                          // 커플 모드 하트 아이콘 (연결 시 표시)
                           if (_coupleModeEnabled)
                             Container(
                               margin: const EdgeInsets.only(right: 4),
                               child: IconButton(
-                                icon: const Icon(Icons.favorite, color: Colors.pink, size: 26),
+                                icon: Stack(
+                                  children: [
+                                    Icon(Icons.favorite, color: Colors.pink[400], size: 26),
+                                    // 애니메이션 효과를 위한 작은 하트
+                                    Positioned(
+                                      top: -2,
+                                      right: -2,
+                                      child: Icon(
+                                        Icons.favorite,
+                                        color: Colors.pink[200],
+                                        size: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                tooltip: '커플 모드 활성화됨',
                                 onPressed: () {
                                   Navigator.push(
                                     context,
@@ -175,7 +208,7 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                                       builder: (context) => const SettingsScreen(openCoupleMode: true),
                                     ),
                                   ).then((_) {
-                                    setState(() {});
+                                    _checkCoupleStatus();
                                   });
                                 },
                               ),
@@ -205,12 +238,29 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                                         ),
                                       ),
                                       const SizedBox(height: 2),
-                                      Text(
-                                        _authService.isAnonymous() ? '게스트' : 'Google',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            _authService.isAnonymous() ? '게스트' : 'Google',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          if (_coupleModeEnabled) ...[
+                                            const SizedBox(width: 8),
+                                            Icon(Icons.favorite, size: 12, color: Colors.pink[300]),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '커플 모드',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.pink[400],
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -373,7 +423,9 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                                 MaterialPageRoute(
                                   builder: (context) => const SettingsScreen(),
                                 ),
-                              );
+                              ).then((_) {
+                                _checkCoupleStatus();
+                              });
                             },
                           ),
                         ],
@@ -547,29 +599,15 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
               ),
             ),
 
-            // 감정 색상 배지 (우측 상단)
+            // 형광펜 스타일 감정 표시 (하단)
             if (hasDiary && emotionColor != null)
               Positioned(
-                top: 6,
-                right: 6,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: emotionColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 2.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: emotionColor.withOpacity(0.5),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
+                bottom: 4,
+                left: 4,
+                right: 4,
+                child: CustomPaint(
+                  size: const Size(double.infinity, 8),
+                  painter: HighlighterPainter(color: emotionColor),
                 ),
               ),
           ],
@@ -594,6 +632,67 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
       }
     });
   }
+}
+
+// 형광펜 스타일 페인터
+class HighlighterPainter extends CustomPainter {
+  final Color color;
+
+  HighlighterPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withOpacity(0.7)
+      ..style = PaintingStyle.fill;
+
+    // 형광펜처럼 불규칙한 테두리 효과
+    final path = Path();
+    path.moveTo(0, size.height * 0.3);
+
+    // 약간 울퉁불퉁한 라인
+    double segments = 8;
+    double segmentWidth = size.width / segments;
+
+    for (int i = 0; i <= segments; i++) {
+      double x = i * segmentWidth;
+      double y = size.height * 0.3 + (i % 2 == 0 ? 0 : size.height * 0.1);
+
+      if (i == 0) {
+        path.lineTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+
+    canvas.drawPath(path, paint);
+
+    // 약간의 그라데이션 효과를 위한 두 번째 레이어
+    final topPaint = Paint()
+      ..color = color.withOpacity(0.5)
+      ..style = PaintingStyle.fill;
+
+    final topPath = Path();
+    topPath.moveTo(0, 0);
+    topPath.lineTo(size.width, 0);
+    topPath.lineTo(size.width, size.height * 0.4);
+
+    for (int i = segments.toInt(); i >= 0; i--) {
+      double x = i * segmentWidth;
+      double y = size.height * 0.4 - (i % 2 == 0 ? size.height * 0.1 : 0);
+      topPath.lineTo(x, y);
+    }
+
+    topPath.close();
+    canvas.drawPath(topPath, topPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _NavButton extends StatelessWidget {

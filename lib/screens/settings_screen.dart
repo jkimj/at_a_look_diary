@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_service.dart';
+import '../services/couple_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool openCoupleMode;
@@ -14,17 +16,22 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final AuthService _authService = AuthService();
+  final CoupleService _coupleService = CoupleService();
+
   bool _coupleModeEnabled = false;
+  bool _isCheckingCoupleStatus = true;
+  String? _partnerId;
   bool _notificationsEnabled = true;
   bool _dailyReminderEnabled = false;
-  String _selectedTheme = 'system'; // system, light, dark
+  String _selectedTheme = 'system';
 
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    // 커플 모드 섹션으로 자동 스크롤
+    _checkCoupleStatus();
+
     if (widget.openCoupleMode) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollController.animateTo(
@@ -42,6 +49,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  Future<void> _checkCoupleStatus() async {
+    final userId = _authService.getCurrentUserId();
+    if (userId != null) {
+      final isConnected = await _coupleService.isCoupleConnected(userId);
+      if (isConnected) {
+        final partnerId = await _coupleService.getPartnerId(userId);
+        setState(() {
+          _coupleModeEnabled = true;
+          _partnerId = partnerId;
+          _isCheckingCoupleStatus = false;
+        });
+      } else {
+        setState(() {
+          _coupleModeEnabled = false;
+          _partnerId = null;
+          _isCheckingCoupleStatus = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,7 +77,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         title: const Text('설정'),
       ),
-      body: ListView(
+      body: _isCheckingCoupleStatus
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
@@ -277,19 +307,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           color: iconColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: iconColor, size: 22),
+        child: Icon(icon, color: iconColor, size: 24),
       ),
       title: Text(
         title,
         style: const TextStyle(
           fontSize: 15,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
       ),
       subtitle: subtitle != null
           ? Text(
         subtitle,
-        style: const TextStyle(fontSize: 13),
+        style: TextStyle(
+          fontSize: 13,
+          color: Colors.grey[600],
+        ),
       )
           : null,
       trailing: trailing,
@@ -298,17 +331,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAccountCard() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
+    final user = _authService.getCurrentUser();
+    final isAnonymous = _authService.isAnonymous();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFB39DDB).withOpacity(0.8),
+            const Color(0xFF9575CD).withOpacity(0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB39DDB).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundColor: Colors.blue[50],
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: Icon(
-              _authService.isAnonymous() ? Icons.person_outline : Icons.person,
-              size: 36,
-              color: Colors.blue[700],
+              isAnonymous ? Icons.person_outline : Icons.person,
+              color: const Color(0xFFB39DDB),
+              size: 28,
             ),
           ),
           const SizedBox(width: 16),
@@ -317,32 +381,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _authService.isAnonymous()
-                      ? '익명 사용자'
-                      : _authService.getCurrentUser()?.email ?? '사용자',
+                  isAnonymous ? '익명 사용자' : (user?.email ?? '사용자'),
                   style: const TextStyle(
-                    fontSize: 17,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _authService.isAnonymous()
-                        ? Colors.grey[200]
-                        : Colors.blue[50],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _authService.isAnonymous() ? '게스트' : 'Google',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _authService.isAnonymous()
-                          ? Colors.grey[700]
-                          : Colors.blue[700],
-                      fontWeight: FontWeight.w600,
-                    ),
+                Text(
+                  isAnonymous ? '게스트 모드' : 'Google 계정',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.9),
                   ),
                 ),
               ],
@@ -354,46 +405,113 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildCoupleModeCard() {
-    return Column(
-      children: [
-        _buildListTile(
-          icon: Icons.favorite,
-          iconColor: _coupleModeEnabled ? Colors.pink : Colors.grey,
-          title: '커플 모드',
-          subtitle: _coupleModeEnabled
-              ? '연인과 함께 일기를 공유하고 있어요'
-              : '연인과 일기를 공유해보세요',
-          trailing: Switch(
-            value: _coupleModeEnabled,
-            onChanged: (value) {
-              setState(() {
-                _coupleModeEnabled = value;
-              });
-              if (value) {
-                _showCoupleModeDialog();
-              }
-            },
-            activeColor: Colors.pink,
-          ),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: _coupleModeEnabled
+              ? [
+            Colors.pink[300]!,
+            Colors.pink[400]!,
+          ]
+              : [
+            Colors.grey[100]!,
+            Colors.grey[200]!,
+          ],
         ),
-        if (_coupleModeEnabled) ...[
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: ElevatedButton.icon(
-              onPressed: _showInvitePartnerDialog,
-              icon: const Icon(Icons.person_add, size: 20),
-              label: const Text('파트너 초대하기'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.pink[50],
-                foregroundColor: Colors.pink[700],
-                elevation: 0,
-                minimumSize: const Size(double.infinity, 48),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: _coupleModeEnabled
+            ? [
+          BoxShadow(
+            color: Colors.pink.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ]
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _coupleModeEnabled ? Colors.white : Colors.pink[50],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.favorite,
+                  color: _coupleModeEnabled ? Colors.pink : Colors.pink[300],
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '커플 모드',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _coupleModeEnabled ? Colors.white : Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _coupleModeEnabled ? '파트너와 연결됨' : '일기를 함께 공유해요',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _coupleModeEnabled ? Colors.white.withOpacity(0.9) : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _coupleModeEnabled,
+                onChanged: (value) {
+                  if (value) {
+                    _showCoupleConnectFlow();
+                  } else {
+                    _showDisconnectDialog();
+                  }
+                },
+                activeColor: Colors.white,
+                activeTrackColor: Colors.pink[200],
+              ),
+            ],
+          ),
+          if (_coupleModeEnabled && _partnerId != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '두 사람이 함께 쓰는 일기장 💕',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -408,38 +526,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // 다이얼로그들
-  void _showCoupleModeDialog() {
+  // 커플 연결 플로우
+  void _showCoupleConnectFlow() {
+    showDialog(
+      context: context,
+      builder: (context) => _CoupleConnectDialog(
+        coupleService: _coupleService,
+        authService: _authService,
+        onSuccess: () {
+          _checkCoupleStatus();
+          Navigator.pop(context);
+          _showSuccessDialog();
+        },
+      ),
+    );
+  }
+
+  void _showSuccessDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
           children: [
-            Icon(Icons.favorite, color: Colors.pink),
-            SizedBox(width: 8),
-            Text('커플 모드'),
+            Icon(Icons.celebration, color: Colors.pink[400], size: 28),
+            const SizedBox(width: 12),
+            const Text('매칭 성공!'),
           ],
         ),
-        content: const Text(
-          '커플 모드를 활성화하면 연인과 일기를 공유할 수 있어요.\n\n'
-              '• 서로의 일기를 볼 수 있어요\n'
-              '• 함께 작성한 추억을 기록해요\n'
-              '• 상대방에게 하트를 보낼 수 있어요',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.favorite, color: Colors.pink, size: 64),
+            const SizedBox(height: 16),
+            const Text(
+              '이제 두 사람이 함께 쓰는\n일기장이 열렸어요! ✨',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.5,
+              ),
+            ),
+          ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _coupleModeEnabled = false;
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('취소'),
-          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.pink,
+              minimumSize: const Size(double.infinity, 45),
             ),
             child: const Text('시작하기'),
           ),
@@ -448,68 +583,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showInvitePartnerDialog() {
+  void _showDisconnectDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('파트너 초대'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('초대 코드를 공유하거나\n상대방의 코드를 입력하세요'),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'ABC-123-XYZ',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.copy),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('초대 코드가 복사되었습니다')),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: const InputDecoration(
-                hintText: '상대방 초대 코드 입력',
-              ),
-            ),
-          ],
-        ),
+        title: const Text('커플 모드 해제'),
+        content: const Text('파트너와의 연결을 해제하시겠습니까?\n\n해제하면 두 사람의 일기가 더 이상 공유되지 않습니다.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('취소'),
           ),
-          ElevatedButton(
-            onPressed: () {
+          TextButton(
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('파트너 연결 기능은 준비 중입니다')),
-              );
+              final userId = _authService.getCurrentUserId();
+              if (userId != null) {
+                try {
+                  await _coupleService.disconnectCouple(userId);
+                  _checkCoupleStatus();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('연결이 해제되었습니다')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('오류: $e')),
+                    );
+                  }
+                }
+              }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.pink,
-            ),
-            child: const Text('연결하기'),
+            child: const Text('해제', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -542,9 +649,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: 'system',
               groupValue: _selectedTheme,
               onChanged: (value) {
-                setState(() {
-                  _selectedTheme = value!;
-                });
+                setState(() => _selectedTheme = value!);
                 Navigator.pop(context);
               },
             ),
@@ -553,9 +658,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: 'light',
               groupValue: _selectedTheme,
               onChanged: (value) {
-                setState(() {
-                  _selectedTheme = value!;
-                });
+                setState(() => _selectedTheme = value!);
                 Navigator.pop(context);
               },
             ),
@@ -564,9 +667,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: 'dark',
               groupValue: _selectedTheme,
               onChanged: (value) {
-                setState(() {
-                  _selectedTheme = value!;
-                });
+                setState(() => _selectedTheme = value!);
                 Navigator.pop(context);
               },
             ),
@@ -717,10 +818,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               await _authService.signOut();
               if (mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/login',
-                      (route) => false,
-                );
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
               }
             },
             child: const Text('로그아웃', style: TextStyle(color: Colors.red)),
@@ -728,5 +826,333 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+}
+
+// 커플 연결 다이얼로그
+class _CoupleConnectDialog extends StatefulWidget {
+  final CoupleService coupleService;
+  final AuthService authService;
+  final VoidCallback onSuccess;
+
+  const _CoupleConnectDialog({
+    required this.coupleService,
+    required this.authService,
+    required this.onSuccess,
+  });
+
+  @override
+  State<_CoupleConnectDialog> createState() => _CoupleConnectDialogState();
+}
+
+class _CoupleConnectDialogState extends State<_CoupleConnectDialog> {
+  int _step = 0; // 0: 안내, 1: 코드생성, 2: 코드입력
+  String? _generatedCode;
+  bool _isLoading = false;
+  final TextEditingController _codeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_step == 0) _buildIntroStep(),
+            if (_step == 1) _buildCodeGenerationStep(),
+            if (_step == 2) _buildCodeInputStep(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIntroStep() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.favorite, color: Colors.pink[300], size: 64),
+        const SizedBox(height: 20),
+        const Text(
+          '연결하고 싶은 사람과\n일기를 공유해볼까요?',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '커플 모드를 활성화하면\n두 사람의 일기를 함께 볼 수 있어요',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 28),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => setState(() => _step = 2),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: Colors.grey[300]!),
+                ),
+                child: const Text('코드 입력'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _generateCode(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.pink,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text('코드 생성'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('취소'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCodeGenerationStep() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.qr_code_2, color: Colors.pink[300], size: 64),
+        const SizedBox(height: 20),
+        const Text(
+          '이 코드를 상대에게\n보내주세요',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.pink[50],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.pink[200]!, width: 2),
+          ),
+          child: Column(
+            children: [
+              Text(
+                _generatedCode ?? '',
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                  color: Colors.pink,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '24시간 동안 유효',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: _generatedCode ?? ''));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('코드가 복사되었습니다')),
+                  );
+                },
+                icon: const Icon(Icons.copy, size: 18),
+                label: const Text('복사'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Share.share('한 눈에 보는 일기장 커플 코드: ${_generatedCode ?? ''}\n\n앱에서 이 코드를 입력하면 일기를 함께 공유할 수 있어요!');
+                },
+                icon: const Icon(Icons.share, size: 18),
+                label: const Text('공유'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('닫기'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCodeInputStep() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.vpn_key, color: Colors.pink[300], size: 64),
+        const SizedBox(height: 20),
+        const Text(
+          '상대방의 코드를\n입력해주세요',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 24),
+        TextField(
+          controller: _codeController,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+          ),
+          decoration: InputDecoration(
+            hintText: 'A2B9-77LQ',
+            hintStyle: TextStyle(
+              color: Colors.grey[400],
+              letterSpacing: 2,
+            ),
+            filled: true,
+            fillColor: Colors.pink[50],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.pink[200]!, width: 2),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.pink[200]!, width: 2),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.pink, width: 2),
+            ),
+          ),
+          textCapitalization: TextCapitalization.characters,
+          maxLength: 9, // A2B9-77LQ = 9자
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _connectWithCode,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.pink,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: _isLoading
+                ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+                : const Text('연결하기'),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () => setState(() => _step = 0),
+          child: const Text('뒤로'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _generateCode() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final userId = widget.authService.getCurrentUserId();
+      if (userId == null) throw Exception('로그인이 필요합니다');
+
+      final code = await widget.coupleService.createCoupleCode(userId);
+
+      setState(() {
+        _generatedCode = code;
+        _step = 1;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류: $e')),
+        );
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  Future<void> _connectWithCode() async {
+    final code = _codeController.text.trim().toUpperCase();
+
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('코드를 입력해주세요')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final userId = widget.authService.getCurrentUserId();
+      if (userId == null) throw Exception('로그인이 필요합니다');
+
+      await widget.coupleService.connectWithCode(userId, code);
+
+      if (mounted) {
+        widget.onSuccess();
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e')),
+        );
+      }
+    }
   }
 }
