@@ -10,6 +10,7 @@ import 'diary_write_screen.dart';
 import 'personal_diary_detail_screen.dart';
 import 'couple_diary_detail_screen.dart';
 import 'settings_screen.dart';
+import 'home_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -454,9 +455,11 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                             label: '홈',
                             isSelected: false,
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('홈 화면 준비 중')),
-                              );
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                            MaterialPageRoute(builder: (_) => const HomeScreen()),
+                            (route) => false,
+                            );
                             },
                           ),
                           _NavButton(

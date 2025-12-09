@@ -4,6 +4,8 @@ import '../models/diary_space.dart';
 import '../services/diary_service.dart';
 import '../services/auth_service.dart';
 import 'diary_write_screen.dart';
+import '../models/diary_count.dart';
+
 
 class PersonalDiaryDetailScreen extends StatefulWidget {
   final DateTime date;
@@ -22,6 +24,15 @@ class PersonalDiaryDetailScreen extends StatefulWidget {
 class _PersonalDiaryDetailScreenState extends State<PersonalDiaryDetailScreen> {
   final DiaryService _diaryService = DiaryService();
   final AuthService _authService = AuthService();
+  @override
+  void initState() {
+    super.initState();
+
+    final dateKey =
+        '${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}-${widget.date.day.toString().padLeft(2, '0')}';
+
+    DiaryManager.instance.addDiaryIfNew(dateKey);
+  }
 
   String _formatDisplayDate(DateTime date) {
     return '${date.year}년 ${date.month}월 ${date.day}일';
