@@ -1,16 +1,33 @@
-# at_a_look_diary
+# 한 눈에 보는 일기장
 
-A new Flutter project.
+달력 + 하루 기록 일기장
 
-## Getting Started
+## 프로젝트 소개
 
-This project is a starting point for a Flutter application.
+「한눈에 보는 일기장」은 월 단위 달력 위에서 하루하루 기록한 사진과 일기를 이미지 썸네일 형태로 직관적으로 확인할 수 있는 감성 일기장 앱입니다.
+사용자는 달력에서 특정 날짜를 누르면 해당 날짜의 사진과 텍스트 기록을 바로 조회할 수 있어, 시간이 지나도 자신의 일상을 시각적으로 빠르게 돌아볼 수 있습니다.
 
-A few resources to get you started if this is your first Flutter project:
+또한 앱 기반 플랫폼과 Firebase Realtime Database / Storage를 활용하여 텍스트와 이미지를 안전하게 저장하고, 언제 어디서나 동일한 기록을 확인할 수 있는 실시간 동기화 구조를 적용했습니다.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+본 프로젝트는 복잡한 과정을 최소화하고 하루 1기록 흐름을 유지할 수 있도록,
+사진 1장 + 간단한 일기라는 단순한 형태로 꾸준한 감정 기록 습관 형성에 초점을 맞추어 설계되었습니다.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 개발 기간
+
+25.12.10 ~ 26.03.10
+
+## 개발 환경
+
+Frontend: Android Studio
+
+Backend: Firebase Realtime Database & Storage
+
+Deployment: Web App 
+
+Design: Figma
+
+Collaboration: Figma ... etc 
+
+## 팀 소개
+
+$
