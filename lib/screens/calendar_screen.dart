@@ -455,11 +455,12 @@ class _CalendarScreenState extends State<CalendarScreen> with SingleTickerProvid
                             label: '홈',
                             isSelected: false,
                             onTap: () {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                            MaterialPageRoute(builder: (_) => const HomeScreen()),
-                            (route) => false,
-                            );
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const HomeScreen(),
+                                ),
+                              );
                             },
                           ),
                           _NavButton(
