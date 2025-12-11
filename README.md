@@ -1,193 +1,133 @@
-# 한 눈에 보는 일기장
+한 눈에 보는 일기장 (AT A LOOK DIARY)
+Team 2 — 이예린 · 김재이 · 김아리
 
-달력 + 하루 기록 일기장
+Flutter · Firebase 기반 일기 & 감정 기록 앱
 
-## 프로젝트 소개
+🔎 1. 프로젝트 소개
 
-「한눈에 보는 일기장」은 월 단위 달력 위에서 하루하루 기록한 사진과 일기를 이미지 썸네일 형태로 직관적으로 확인할 수 있는 감성 일기장 앱입니다.
-사용자는 달력에서 특정 날짜를 누르면 해당 날짜의 사진과 텍스트 기록을 바로 조회할 수 있어, 시간이 지나도 자신의 일상을 시각적으로 빠르게 돌아볼 수 있습니다.
+“한 눈에 보는 일기장”은 월간 달력 UI를 기반으로
+사진 + 텍스트 + 감정 기록을 한눈에 확인할 수 있는 모바일 일기장 앱입니다.
 
-또한 앱 기반 플랫폼과 Firebase Realtime Database / Storage를 활용하여 텍스트와 이미지를 안전하게 저장하고, 언제 어디서나 동일한 기록을 확인할 수 있는 실시간 동기화 구조를 적용했습니다.
+Firebase 실시간 저장 구조를 활용하여
+언제 어디서든 일상을 기록하고 되돌아볼 수 있는 플랫폼을 목표로 합니다.
 
-본 프로젝트는 복잡한 과정을 최소화하고 하루 1기록 흐름을 유지할 수 있도록,
-사진 1장 + 간단한 일기라는 단순한 형태로 꾸준한 감정 기록 습관 형성에 초점을 맞추어 설계되었습니다.
+🎯 2. 핵심 기능 (Key Features)
 
-## 개발 기간
+📅 달력 기반 일기 조회 — 날짜별 썸네일 자동 표시
 
-25.12.07 ~ 25.12.10
+📝 일기 작성 및 수정 — 사진 업로드 + 텍스트 기록
 
-## 개발 환경
+😊 감정 기록 기능 — 감정 선택 후 통계 확인 가능
 
-Frontend: Android Studio
+🤝 커플 공유 일기 기능 — 서로의 일기 열람 가능
 
-Backend: Firebase Realtime Database & Storage
+🔐 Firebase Auth 로그인 — 구글 로그인 포함
 
-Deployment: Web App 
+🏗️ 3. 시스템 아키텍처
 
-Design: Figma
+Firebase Authentication
 
-Collaboration: Figma ... etc 
+Firebase Realtime Database
 
-## 사용자 흐름
+Firebase Storage
 
-- 앱 실행 → 익명 로그인 완료
-  
-- 달력 화면에서 날짜 클릭
-  
-- 감정 선택 → 이미지 업로드 → 텍스트 입력
+Flutter Front-end
 
-- 저장 → 달력에 썸네일/감정 색상 표시
+시각 자료는 /docs/03_Design_Architecture.pdf 참고
 
-- 커플 모드 : 상대방 기록 실시간 표시
+📚 4. 기술 스택 (Tech Stack)
 
-## 팀 소개
+Frontend
 
-- 이예린 – 팀장 / Product Manager & Documentation Manager
+Flutter 3.x
 
-프로젝트 총괄 기획 및 PM (Product Manager)
+Dart
 
-요구사항 분석 및 서비스 설계
+Backend / Cloud
 
-Firebase 구조 설계 및 일부 기능 구현
+Firebase Authentication
 
-전체 SDLC 문서·보고서 작성 총괄
+Firebase Realtime Database
 
-발표 자료(PPT) 제작 및 팀 품질 관리
+Firebase Storage
 
-기여한 상세 내용(Contributions)
-1) 프로젝트 기획 및 서비스 방향 설정
+📂 5. 프로젝트 구조 (Project Structure)
+lib/
+ ├── screens/
+ ├── services/
+ ├── widgets/
+ ├── models/
+ └── main.dart
 
-“한 눈에 보는 일기장” 서비스 핵심 컨셉 제안
 
-사용자 니즈 분석 및 기능 범위 정의
+자세한 구조 설명은 /docs 문서 참고
 
-월간 달력 기반 일기 조회 UX 설계
+🧪 6. 테스트
 
-커플 일기 기능 구조 제안 및 흐름 기획
+테스트 시나리오 및 결과는
+/docs/04_Test_Report.pdf 에 포함되어 있습니다.
 
-2) 요구사항 분석 및 데이터 구조 설계
+📸 7. 스크린샷
 
-기능 요구사항 정의서(FR 문서) 작성
+#splash 
+<img width="304" height="688" alt="스크린샷 2025-12-10 164945" src="https://github.com/user-attachments/assets/d5d66fc4-824c-4783-8b8d-fa0752b785da" />
 
-사용자 시나리오·페르소나 설계
+#Home 
+<img width="224" height="520" alt="image" src="https://github.com/user-attachments/assets/573c5e14-f343-4ddd-966d-dbf48e9c3abe" />
 
-주요 데이터 모델(일기, 이미지, 감정, 커플 공유 데이터) 구조 설계
+#[main] 개인 일기장 
+<img width="261" height="541" alt="image" src="https://github.com/user-attachments/assets/d91035dd-2f39-4ef4-9f96-6087cef7ce75" />
+<img width="257" height="569" alt="image" src="https://github.com/user-attachments/assets/70800f0a-244a-4526-b2e5-27d05f27df76" />
+<img width="262" height="576" alt="image" src="https://github.com/user-attachments/assets/08cca0db-5897-4f39-9ddd-b25fdcc6a402" />
 
-Firebase Database 구조 기획 및 필드 설계
+#커플연결
+<img width="289" height="555" alt="image" src="https://github.com/user-attachments/assets/c1a5de8c-27b5-4c37-a489-e1bb6bbb380e" />
+<img width="251" height="555" alt="image" src="https://github.com/user-attachments/assets/b4179d46-ede1-43cd-8b4e-b618e1aba8a3" />
 
-3) Firebase 연동 및 기능 구현 일부 담당
+#커플 일기장 mode
+<img width="280" height="616" alt="image" src="https://github.com/user-attachments/assets/4cce80e2-c581-4d64-bf5f-53daa7831cb3" />
+<img width="283" height="636" alt="image" src="https://github.com/user-attachments/assets/7a999626-8d16-4cd7-b3dc-287346c1a3cd" />
+<img width="289" height="646" alt="image" src="https://github.com/user-attachments/assets/7f618ab7-6090-4984-8d25-1c4dcbaae1d0" />
 
-Firebase Auth 연동 로직 구성 및 로그인 구조 설계
+▶️ 8. 시연 영상 (추후 업로드 예정)
 
-데이터 저장 방식 설계(사진 Storage + 메타 정보 Realtime DB)
 
-데이터 흐름/관계 정리 및 오류 케이스 검토
+👥 9. 팀원 역할 (Team Roles)
+이예린 — Team Leader / Product Manager
 
-초기 연결 설정 및 앱-DB 간 연동 검증
+프로젝트 기획, 요구사항 분석, 데이터 구조 설계, Firebase 연동 구조 수립,
+SDLC 문서·테스트 보고서·사용자 매뉴얼 및 PPT 제작을 총괄.
 
-4) SDLC 기반 문서 및 산출물 작성 총괄
+김재이 — Full-Stack Developer
 
-프로젝트 개요서
+Firebase 기반 데이터 구조 설계 및 CRUD 구현,
+Flutter UI 개발, 이미지 업로드 처리, Android 빌드 및 오류 해결을 담당.
 
-요구사항 명세서
+김아리 — DocumentSupport & User Testing
 
-유지보수 계획서(Full 버전)
+ 문서 보조,
+앱 사용성 테스트 참여.
 
-테스트 보고서
+⚙️ 10. 실행 방법 (How to Run)
 
-사용자 매뉴얼 작성
+Flutter 패키지 설치:
 
-경쟁 서비스 분석, 벤치마킹 전략, SWOT 등 추가 분석 문서 제작
+flutter pub get
 
-최종 회고 내용 및 개선안 정리
 
-※ 팀 산출물 문서의 90% 이상을 직접 구성·정리한 핵심 역할
+앱 실행:
 
-5) 공통 UI/UX 디자인 방향 설정
+flutter run
 
-전체 앱 톤앤매너 기획(화이트/핑크 느낌)
 
-화면 흐름 구조 설계(로그인 → 홈 → 기록 → 조회)
+APK 빌드:
 
-홈 화면 감정 요약/카드뷰 UI 방향 제안
+flutter build apk
 
-사용성 개선 포인트 도출 및 테스트 참여
+📌 11. GitHub Repository
 
-6) 발표 자료(PPT) 제작 및 발표 관리
+https://github.com/jkimj/at_a_look_diary
 
-PPT 전체 구성(문서 기반 슬라이드 재가공)
+📄 12. 라이선스
 
-기능 흐름, 아키텍처, ERD·데이터 흐름 시각화
-
-팀 역할 정리·산출물 요약 등 발표 문서 완성
-
-팀 발표 일정 관리 및 품질 점검
-
-7) 프로젝트 운영 및 팀 커뮤니케이션 리딩
-
-회의 내용 정리 및 과제 분배
-
-개발 진행 상황 체크 및 문제 해결 조율
-
-GitHub 협업 관련 조언 및 버전 관리 흐름 안내
-
-테스트 중 발생한 버그 원인 분석 및 해결 방향 제안
-
-
-
-- 김재이 — Full-Stack Developer
-  풀스택 개발(Front-end & Back-end) 전반 담당
-
-Firebase 기반 데이터 구조 설계 및 기능 구현
-
-UI/UX 요소 개발 및 인터랙션 구현 지원
-
-앱 안정성·성능 개선을 위한 기술적 의사결정 참여
-
-기여한 상세 내용(Contributions)
-1) Firebase 연동 및 데이터 구조 설계
-
-실시간 데이터베이스 구조 정의
-
-사용자·일기·커플모드·감정 데이터 흐름 설계
-
-Firebase Auth(로그인), Storage(이미지 업로드) 연동
-
-2) 주요 기능 구현
-
-일기 CRUD 전체 기능 구현
-
-사진 업로드·저장 로직 개발
-
-한 달 달력 기반 썸네일 표시 기능 개발
-
-커플 공유 다이어리 데이터 처리 로직 구현
-
-3) 프론트엔드 개발
-
-Flutter UI 컴포넌트 개발
-
-홈 탭 기능 작업 일부 참여
-
-반응형 UI 개선
-
-UX 흐름에 맞춘 화면 전환(네비게이션) 구현
-
-4) 앱 개발/빌드 환경 구성
-
-Android 빌드 오류 해결 및 Gradle 설정 조정
-
-디버깅 및 실제 기기 테스트 진행
-
-환경 변수 설정 및 Firebase 프로젝트 연결 담당
-
-5) 요구사항 정리 + 테스트 참여
-
-각 기능의 기술적 요구사항 분석
-
-기능 테스트 및 오류 수정 작업 진행
-
-
-
-
-- 김아리 : 산출물 내용 정리 보조,사용자 관점 품질 검토
+MIT License
