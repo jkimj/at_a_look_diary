@@ -67,18 +67,42 @@ lib/
 테스트 시나리오 및 결과는
 /docs/04_Test_Report.pdf 에 포함되어 있습니다.
 
-📸 7. 스크린샷 
+## 📸 7. 스크린샷
 
-# Splash
-<img width="300" alt="splash" src="https://github.com/user-attachments/assets/d5d66fc4-824c-4783-8b8d-fa0752b785da" />
-# Home
-<img width="300" alt="home" src="https://github.com/user-attachments/assets/573c5e14-f343-4ddd-966d-dbf48e9c3abe" />
-# [Main] 개인 일기장
-<img width="300" alt="diary1" src="https://github.com/user-attachments/assets/d91035dd-2f39-4ef4-9f96-6087cef7ce75" /> <img width="300" alt="diary2" src="https://github.com/user-attachments/assets/70800f0a-244a-4526-b2e5-27d05f27df76" /> <img width="300" alt="diary3" src="https://github.com/user-attachments/assets/08cca0db-5897-4f39-9ddd-b25fdcc6a402" />
-# 커플 연결
-<img width="300" alt="couple1" src="https://github.com/user-attachments/assets/c1a5de8c-27b5-4c37-a489-e1bb6bbb380e" /> <img width="300" alt="couple2" src="https://github.com/user-attachments/assets/b4179d46-ede1-43cd-8b4e-b618e1aba8a3" />
-# 커플 일기장 Mode
-<img width="300" alt="coupleDiary1" src="https://github.com/user-attachments/assets/4cce80e2-c581-4d64-bf5f-53daa7831cb3" /> <img width="300" alt="coupleDiary2" src="https://github.com/user-attachments/assets/7a999626-8d16-4cd7-b3dc-287346c1a3cd" /> <img width="300" alt="coupleDiary3" src="https://github.com/user-attachments/assets/7f618ab7-6090-4984-8d25-1c4dcbaae1d0" />
+---
+
+## 🟣 Splash / Home
+
+| Splash | Home |
+|-------|-------|
+| <img width="300" src="https://github.com/user-attachments/assets/d5d66fc4-824c-4783-8b8d-fa0752b785da" /> | <img width="300" src="https://github.com/user-attachments/assets/573c5e14-f343-4ddd-966d-dbf48e9c3abe" /> |
+
+---
+
+## 🟣 [Main] 개인 일기장
+
+| 일기장 1 | 일기장 2 | 일기장 3 |
+|---------|----------|----------|
+| <img width="250" src="https://github.com/user-attachments/assets/d91035dd-2f39-4ef4-9f96-6087cef7ce75" /> | <img width="250" src="https://github.com/user-attachments/assets/70800f0a-244a-4526-b2e5-27d05f27df76" /> | <img width="250" src="https://github.com/user-attachments/assets/08cca0db-5897-4f39-9ddd-b25fdcc6a402" /> |
+
+---
+
+## 🟣 커플 연결
+
+| 연결 1 | 연결 2 |
+|--------|--------|
+| <img width="250" src="https://github.com/user-attachments/assets/c1a5de8c-27b5-4c37-a489-e1bb6bbb380e" /> | <img width="250" src="https://github.com/user-attachments/assets/b4179d46-ede1-43cd-8b4e-b618e1aba8a3" /> |
+
+---
+
+## 🟣 커플 일기장 Mode
+
+| Mode 1 | Mode 2 | Mode 3 |
+|--------|---------|---------|
+| <img width="250" src="https://github.com/user-attachments/assets/4cce80e2-c581-4d64-bf5f-53daa7831cb3" /> | <img width="250" src="https://github.com/user-attachments/assets/7a999626-8d16-4cd7-b3dc-287346c1a3cd" /> | <img width="250" src="https://github.com/user-attachments/assets/7f618ab7-6090-4984-8d25-1c4dcbaae1d0" /> |
+
+---
+
 
 ▶️ 8. 시연 영상 (추후 업로드 예정)
 
