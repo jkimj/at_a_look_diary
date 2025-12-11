@@ -68,6 +68,7 @@ lib/
 /docs/04_Test_Report.pdf 에 포함되어 있습니다.
 
 📸 7. 스크린샷 
+
 # Splash
 <img width="300" alt="splash" src="https://github.com/user-attachments/assets/d5d66fc4-824c-4783-8b8d-fa0752b785da" />
 # Home
