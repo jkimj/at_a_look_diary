@@ -536,9 +536,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       date.day.toString(),
                       style: const TextStyle(
-                        fontSize: 32,
+                        fontSize: 27,
                         fontWeight: FontWeight.bold,
+
                       ),
+
                     ),
                   ],
                 ),
